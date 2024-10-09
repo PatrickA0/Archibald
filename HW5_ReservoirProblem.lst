@@ -1,0 +1,491 @@
+GAMS 47.6.0  c2de9d6d Sep 12, 2024          WEX-WEI x86 64bit/MS Windows - 10/08/24 15:38:25 Page 1
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+      CEE 6410 - Water Resources Systems Analysis
+      Homework 5 - Reservoir Operation
+       
+      THE PROBLEM:
+       
+      A reservoir is designed to be used for hydropower and irrigation. At least 1 unit of water needs to
+      be in the river in each month at point A (end of the system). Hydropower turbines have a capacity of
+      4 units of water per month and other releases bypass the turbines. There is no upper limit on usable
+      irrigation water. The reservoir has a capacit of 9 units of water, with an initial storage of 5 units.
+      The ending storage must be equal to or greater than the beginning storage. Benefits per unit of water
+      and average inflows to the reservoir are shown below.
+       
+      Month       Inflow Units        Hydropower Benefits ($/unit)      Irrigation Benefits ($/unit)
+      1               2                       1.6                                 1.0
+      2               2                       1.7                                 1.2
+      3               3                       1.8                                 1.9
+      4               4                       1.9                                 2.0
+      5               3                       2.0                                 2.2
+      6               2                       2.0                                 2.2
+       
+       
+      Patrick Archibald
+      A02268222@usu.edu
+      October 4, 2024
+  27   
+  28  * 1. DEFINE the SETS
+  29  SET months time component for duration of the model / Month1, Month2, Month3,
+  30                                                        Month4, Month5, Month6 /;
+  31   
+  32  * 2. DEFINE input data
+  33  PARAMETERS
+  34     inflow(months) inflow values (units per month)
+  35            /Month1 2, Month2 2, Month3 3,
+  36             Month4 4, Month5 3, Month6 2/
+  37     hb(months) hydrobenefits (dollars per unit)
+  38            /Month1 1.6, Month2 1.7, Month3 1.8,
+  39             Month4 1.9, Month5 2.0, Month6 2.0/
+  40     ib(months) irrigation benefits (dollars per unit)
+  41            /Month1 1.0, Month2 1.2, Month3 1.9,
+  42             Month4 2.0, Month5 2.2, Month6 2.2/
+  43     storageInitial / 5 /;
+  44   
+  45  * 3. DEFINE the variables
+  46  VARIABLES storage(months) units left in reservoir for storage in each month (number)
+  47            hydro(months) units used for hydropower in each month (number)
+  48            spill(months) units spilling from reservoir and by passing hydropower (number)
+  49            irr(months) units of water used for irrigation in each month (number)
+  50            flowA(months) units of water in the river at A in each month (number)
+  51            profitfunction objective function ($);
+  52   
+  53  * Non-negativity constraints
+  54  POSITIVE VARIABLES storage, hydro, spill
+  55                     irr, flowA;
+  56   
+  57  * 4. COMBINE variables and data in equations
+  58  EQUATIONS
+  59     ObjectiveFunction objective function
+  60     M1Storage mass balance in month 1
+  61     M2toM6BalanceStorage mass balance of reservoir months 2-6
+  62     ResConstraint constraint on reservoir capacity
+  63     HydroConstraint constraint on hydropower capacity
+  64     IrrigationDiversion inflows to diversion equal outflows from diversion
+  65     RiverAtAConstraint constraint on water in river at A
+  66     EndStorage constraint on reservoir storage at simulation end;
+  67   
+  68  ObjectiveFunction..                 profitfunction =E= SUM(months,hb(months)*hydro(months))+
+  69                                                         SUM(months,ib(months)*irr(months));
+  70  M1Storage..                         storage("Month1") =E= storageInitial + inflow("Month1")
+  71                                                            - spill("Month1") - hydro("Month1");
+  72  M2toM6BalanceStorage(months)$(ord(months) > 1)..        storage(months) =E= storage(months-1) +
+  73                                                          inflow(months) - spill(months) - hydro(months);
+  74   
+  75  ResConstraint(months)..             storage(months) =L= 9;
+  76  HydroConstraint(months)..           hydro(months) =L= 4;
+  77  IrrigationDiversion(months)..       hydro(months) + spill(months) =E= irr(months) + flowA(months);
+  78  RiverAtAConstraint(months)..        flowA(months) =G= 1;
+  79   
+  80  EndStorage..                        storage("Month6") =G= storageInitial;
+  81   
+  82  * 5. DEFINE the MODEL from the EQUATIONS
+  83  MODEL RESPROBLEM /ALL/;
+  84  *Altnerative way to write (include all previously defined equations)
+  85  *MODEL PLANTING /ALL/;
+  86   
+  87  * 6. SOLVE the MODEL
+  88  * Solve the PLANTING model using a Linear Programming Solver (see File=>Options=>Solvers)
+  89  *     to maximize VPROFIT
+  90  SOLVE RESPROBLEM USING LP MAXIMIZING profitfunction;
+  91   
+  92  * 6. CLick File menu => RUN (F9) or Solve icon and examine solution report in .LST file
+
+
+COMPILATION TIME     =        0.000 SECONDS      3 MB  47.6.0 c2de9d6d WEX-WEI
+GAMS 47.6.0  c2de9d6d Sep 12, 2024          WEX-WEI x86 64bit/MS Windows - 10/08/24 15:38:25 Page 2
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Equation Listing    SOLVE RESPROBLEM Using LP From line 90
+
+
+---- ObjectiveFunction  =E=  objective function
+
+ObjectiveFunction..  - 1.6*hydro(Month1) - 1.7*hydro(Month2) - 1.8*hydro(Month3) - 1.9*hydro(Month4) - 2*hydro(Month5) - 2*hydro(Month6) - irr(Month1) - 1.2*irr(Month2) - 1.9*irr(Month3) - 2*irr(Month4) - 2.2*irr(Month5) - 2.2*irr(Month6) + profitfunction =E= 0 ; (LHS = 0)
+     
+
+---- M1Storage  =E=  mass balance in month 1
+
+M1Storage..  storage(Month1) + hydro(Month1) + spill(Month1) =E= 7 ; (LHS = 0, INFES = 7 ****)
+     
+
+---- M2toM6BalanceStorage  =E=  mass balance of reservoir months 2-6
+
+M2toM6BalanceStorage(Month2)..  - storage(Month1) + storage(Month2) + hydro(Month2) + spill(Month2) =E= 2 ; (LHS = 0, INFES = 2 ****)
+     
+M2toM6BalanceStorage(Month3)..  - storage(Month2) + storage(Month3) + hydro(Month3) + spill(Month3) =E= 3 ; (LHS = 0, INFES = 3 ****)
+     
+M2toM6BalanceStorage(Month4)..  - storage(Month3) + storage(Month4) + hydro(Month4) + spill(Month4) =E= 4 ; (LHS = 0, INFES = 4 ****)
+     
+REMAINING 2 ENTRIES SKIPPED
+
+
+---- ResConstraint  =L=  constraint on reservoir capacity
+
+ResConstraint(Month1)..  storage(Month1) =L= 9 ; (LHS = 0)
+     
+ResConstraint(Month2)..  storage(Month2) =L= 9 ; (LHS = 0)
+     
+ResConstraint(Month3)..  storage(Month3) =L= 9 ; (LHS = 0)
+     
+REMAINING 3 ENTRIES SKIPPED
+
+
+---- HydroConstraint  =L=  constraint on hydropower capacity
+
+HydroConstraint(Month1)..  hydro(Month1) =L= 4 ; (LHS = 0)
+     
+HydroConstraint(Month2)..  hydro(Month2) =L= 4 ; (LHS = 0)
+     
+HydroConstraint(Month3)..  hydro(Month3) =L= 4 ; (LHS = 0)
+     
+REMAINING 3 ENTRIES SKIPPED
+
+
+---- IrrigationDiversion  =E=  inflows to diversion equal outflows from diversion
+
+IrrigationDiversion(Month1)..  hydro(Month1) + spill(Month1) - irr(Month1) - flowA(Month1) =E= 0 ; (LHS = 0)
+     
+IrrigationDiversion(Month2)..  hydro(Month2) + spill(Month2) - irr(Month2) - flowA(Month2) =E= 0 ; (LHS = 0)
+     
+IrrigationDiversion(Month3)..  hydro(Month3) + spill(Month3) - irr(Month3) - flowA(Month3) =E= 0 ; (LHS = 0)
+     
+REMAINING 3 ENTRIES SKIPPED
+
+
+---- RiverAtAConstraint  =G=  constraint on water in river at A
+
+RiverAtAConstraint(Month1)..  flowA(Month1) =G= 1 ; (LHS = 0, INFES = 1 ****)
+     
+RiverAtAConstraint(Month2)..  flowA(Month2) =G= 1 ; (LHS = 0, INFES = 1 ****)
+     
+RiverAtAConstraint(Month3)..  flowA(Month3) =G= 1 ; (LHS = 0, INFES = 1 ****)
+     
+REMAINING 3 ENTRIES SKIPPED
+
+
+---- EndStorage  =G=  constraint on reservoir storage at simulation end
+
+EndStorage..  storage(Month6) =G= 5 ; (LHS = 0, INFES = 5 ****)
+     
+GAMS 47.6.0  c2de9d6d Sep 12, 2024          WEX-WEI x86 64bit/MS Windows - 10/08/24 15:38:25 Page 3
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Column Listing      SOLVE RESPROBLEM Using LP From line 90
+
+
+---- storage  units left in reservoir for storage in each month (number)
+
+storage(Month1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       M1Storage
+       -1       M2toM6BalanceStorage(Month2)
+        1       ResConstraint(Month1)
+
+storage(Month2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       M2toM6BalanceStorage(Month2)
+       -1       M2toM6BalanceStorage(Month3)
+        1       ResConstraint(Month2)
+
+storage(Month3)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       M2toM6BalanceStorage(Month3)
+       -1       M2toM6BalanceStorage(Month4)
+        1       ResConstraint(Month3)
+
+REMAINING 3 ENTRIES SKIPPED
+
+---- hydro  units used for hydropower in each month (number)
+
+hydro(Month1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1.6     ObjectiveFunction
+        1       M1Storage
+        1       HydroConstraint(Month1)
+        1       IrrigationDiversion(Month1)
+
+hydro(Month2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1.7     ObjectiveFunction
+        1       M2toM6BalanceStorage(Month2)
+        1       HydroConstraint(Month2)
+        1       IrrigationDiversion(Month2)
+
+hydro(Month3)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1.8     ObjectiveFunction
+        1       M2toM6BalanceStorage(Month3)
+        1       HydroConstraint(Month3)
+        1       IrrigationDiversion(Month3)
+
+REMAINING 3 ENTRIES SKIPPED
+
+---- spill  units spilling from reservoir and by passing hydropower (number)
+
+spill(Month1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       M1Storage
+        1       IrrigationDiversion(Month1)
+
+spill(Month2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       M2toM6BalanceStorage(Month2)
+        1       IrrigationDiversion(Month2)
+
+spill(Month3)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       M2toM6BalanceStorage(Month3)
+        1       IrrigationDiversion(Month3)
+
+REMAINING 3 ENTRIES SKIPPED
+
+---- irr  units of water used for irrigation in each month (number)
+
+irr(Month1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1       ObjectiveFunction
+       -1       IrrigationDiversion(Month1)
+
+irr(Month2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1.2     ObjectiveFunction
+       -1       IrrigationDiversion(Month2)
+
+irr(Month3)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1.9     ObjectiveFunction
+       -1       IrrigationDiversion(Month3)
+
+REMAINING 3 ENTRIES SKIPPED
+
+---- flowA  units of water in the river at A in each month (number)
+
+flowA(Month1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1       IrrigationDiversion(Month1)
+        1       RiverAtAConstraint(Month1)
+
+flowA(Month2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1       IrrigationDiversion(Month2)
+        1       RiverAtAConstraint(Month2)
+
+flowA(Month3)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -1       IrrigationDiversion(Month3)
+        1       RiverAtAConstraint(Month3)
+
+REMAINING 3 ENTRIES SKIPPED
+
+---- profitfunction  objective function ($)
+
+profitfunction
+                (.LO, .L, .UP, .M = -INF, 0, +INF, 0)
+        1       ObjectiveFunction
+
+GAMS 47.6.0  c2de9d6d Sep 12, 2024          WEX-WEI x86 64bit/MS Windows - 10/08/24 15:38:25 Page 4
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Range Statistics    SOLVE RESPROBLEM Using LP From line 90
+
+
+RANGE STATISTICS (ABSOLUTE NON-ZERO FINITE VALUES)
+
+RHS       [min, max] : [ 1.000E+00, 9.000E+00] - Zero values observed as well
+Bound     [min, max] : [        NA,        NA] - Zero values observed as well
+Matrix    [min, max] : [ 1.000E+00, 2.200E+00]
+
+GAMS 47.6.0  c2de9d6d Sep 12, 2024          WEX-WEI x86 64bit/MS Windows - 10/08/24 15:38:25 Page 5
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Model Statistics    SOLVE RESPROBLEM Using LP From line 90
+
+
+MODEL STATISTICS
+
+BLOCKS OF EQUATIONS           8     SINGLE EQUATIONS           32
+BLOCKS OF VARIABLES           6     SINGLE VARIABLES           31
+NON ZERO ELEMENTS            79
+
+
+GENERATION TIME      =        0.547 SECONDS      4 MB  47.6.0 c2de9d6d WEX-WEI
+GAMS 47.6.0  c2de9d6d Sep 12, 2024          WEX-WEI x86 64bit/MS Windows - 10/08/24 15:38:25 Page 6
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Solution Report     SOLVE RESPROBLEM Using LP From line 90
+
+
+               S O L V E      S U M M A R Y
+
+     MODEL   RESPROBLEM          OBJECTIVE  profitfunction
+     TYPE    LP                  DIRECTION  MAXIMIZE
+     SOLVER  CPLEX               FROM LINE  90
+
+**** SOLVER STATUS     1 Normal Completion
+**** MODEL STATUS      1 Optimal
+**** OBJECTIVE VALUE               51.6000
+
+ RESOURCE USAGE, LIMIT          0.031 10000000000.000
+ ITERATION COUNT, LIMIT        16    2147483647
+*** This solver runs with a community license.
+--- GMO setup time: 0.00s
+--- GMO memory 0.50 Mb (peak 0.50 Mb)
+--- Dictionary memory 0.00 Mb
+--- Cplex 22.1.1.0 link memory 0.00 Mb (peak 0.00 Mb)
+--- Starting Cplex
+
+
+--- LP status (1): optimal.
+--- Cplex Time: 0.03sec (det. 0.06 ticks)
+
+
+Optimal solution found
+Objective:           51.600000
+
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- EQU Objective~          .              .              .             1.0000      
+---- EQU M1Storage          7.0000         7.0000         7.0000         3.7000      
+
+  ObjectiveFunction  objective function
+  M1Storage  mass balance in month 1
+
+---- EQU M2toM6BalanceStorage  mass balance of reservoir months 2-6
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month2         2.0000         2.0000         2.0000         3.7000      
+Month3         3.0000         3.0000         3.0000         3.7000      
+Month4         4.0000         4.0000         4.0000         3.7000      
+Month5         3.0000         3.0000         3.0000         3.7000      
+Month6         2.0000         2.0000         2.0000         3.7000      
+
+---- EQU ResConstraint  constraint on reservoir capacity
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1        -INF            6.0000         9.0000          .          
+Month2        -INF            7.0000         9.0000          .          
+Month3        -INF            8.0000         9.0000          .          
+Month4        -INF            8.0000         9.0000          .          
+Month5        -INF            7.0000         9.0000          .          
+Month6        -INF            5.0000         9.0000          .          
+
+---- EQU HydroConstraint  constraint on hydropower capacity
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1        -INF            1.0000         4.0000          .          
+Month2        -INF            1.0000         4.0000          .          
+Month3        -INF            2.0000         4.0000          .          
+Month4        -INF            4.0000         4.0000         0.2000      
+Month5        -INF            4.0000         4.0000         0.5000      
+Month6        -INF            4.0000         4.0000         0.5000      
+
+---- EQU IrrigationDiversion  inflows to diversion equal outflows from diversion
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1          .              .              .            -2.1000      
+Month2          .              .              .            -2.0000      
+Month3          .              .              .            -1.9000      
+Month4          .              .              .            -2.0000      
+Month5          .              .              .            -2.2000      
+Month6          .              .              .            -2.2000      
+
+---- EQU RiverAtAConstraint  constraint on water in river at A
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1         1.0000         1.0000        +INF           -2.1000      
+Month2         1.0000         1.0000        +INF           -2.0000      
+Month3         1.0000         1.0000        +INF           -1.9000      
+Month4         1.0000         1.0000        +INF           -2.0000      
+Month5         1.0000         1.0000        +INF           -2.2000      
+Month6         1.0000         1.0000        +INF           -2.2000      
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- EQU EndStorage         5.0000         5.0000        +INF           -3.7000      
+
+  EndStorage  constraint on reservoir storage at simulation end
+
+---- VAR storage  units left in reservoir for storage in each month (number)
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1          .             6.0000        +INF             .          
+Month2          .             7.0000        +INF             .          
+Month3          .             8.0000        +INF             .          
+Month4          .             8.0000        +INF             .          
+Month5          .             7.0000        +INF             .          
+Month6          .             5.0000        +INF             .          
+
+---- VAR hydro  units used for hydropower in each month (number)
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1          .             1.0000        +INF             .          
+Month2          .             1.0000        +INF             .          
+Month3          .             2.0000        +INF             .          
+Month4          .             4.0000        +INF             .          
+Month5          .             4.0000        +INF             .          
+Month6          .             4.0000        +INF             .          
+
+---- VAR spill  units spilling from reservoir and by passing hydropower (number)
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1          .              .            +INF           -1.6000      
+Month2          .              .            +INF           -1.7000      
+Month3          .              .            +INF           -1.8000      
+Month4          .              .            +INF           -1.7000      
+Month5          .              .            +INF           -1.5000      
+Month6          .              .            +INF           -1.5000      
+
+---- VAR irr  units of water used for irrigation in each month (number)
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1          .              .            +INF           -1.1000      
+Month2          .              .            +INF           -0.8000      
+Month3          .             1.0000        +INF             .          
+Month4          .             3.0000        +INF             .          
+Month5          .             3.0000        +INF             .          
+Month6          .             3.0000        +INF             .          
+
+---- VAR flowA  units of water in the river at A in each month (number)
+
+              LOWER          LEVEL          UPPER         MARGINAL
+
+Month1          .             1.0000        +INF             .          
+Month2          .             1.0000        +INF             .          
+Month3          .             1.0000        +INF             .          
+Month4          .             1.0000        +INF             .          
+Month5          .             1.0000        +INF             .          
+Month6          .             1.0000        +INF             .          
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- VAR profitfun~        -INF           51.6000        +INF             .          
+
+  profitfunction  objective function ($)
+
+
+**** REPORT SUMMARY :        0     NONOPT
+                             0 INFEASIBLE
+                             0  UNBOUNDED
+
+
+EXECUTION TIME       =        1.187 SECONDS      4 MB  47.6.0 c2de9d6d WEX-WEI
+
+
+USER: CEE 6410 Water Resources Systems Analysis      G240923|0002AO-GEN
+      Utah State University, Utah Water Research Laboratory     DCE3763
+      License for teaching and research at degree granting institutions
+
+
+**** FILE SUMMARY
+
+Input      C:\Users\Patrick\OneDrive\Documents\Fall 2024\CEE 5410 - Water Resource System Analysis\GAMS Archibald\Archibald\HW5_ReservoirProblem.gms
+Output     C:\Users\Patrick\OneDrive\Documents\Fall 2024\CEE 5410 - Water Resource System Analysis\GAMS Archibald\Archibald\HW5_ReservoirProblem.lst
