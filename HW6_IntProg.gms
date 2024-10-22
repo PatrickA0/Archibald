@@ -22,7 +22,8 @@ October 14, 2024
 $offtext
 
 * 1. DEFINE the SETS
-SETS seasons two seasons of the year /season1, season2/;
+SETS seasons two seasons of the year /season1, season2/
+     choice  choices of what infrastructure to built /HighDam, LowDam, PumpChoice/;
 
 * 2. DEFINE input data
 PARAMETERS
@@ -30,55 +31,56 @@ PARAMETERS
                 /season1 600, season2 200/
    IrrDem(seasons) irrigation demand in each season (ac-ft per acre)
                 /season1 1, season2 3/
-   CostHigh      capital cost to build high reservoir ($ per year)
-                /10000/
-   CostLow       capital cost to build low reservoir ($ per year)
-                /6000/
+   CapitalCost(choice) capital cost for each option ($)
+                /HighDam 10000, LowDam 6000, PumpChoice 8000/
    CapHigh       high reservoir capacity (ac-ft)
                 /700/
    CapLow        low reservoir capacity (ac-ft)
                 /300/
    PumpCap      pump capacity (ac-ft per day)
                 /2.2/
-   PumpCapCost  capital cost for pump ($ per year)
-                /8000/
    PumpOpCost   pump operating cost ($ per ac-ft)
                 /20/
    Revenue      revenue from crops ($ per acre per year)
                 /300/
-   Days         seasons changed to days (assume 180 days = 6 months)
-                /180/;
+   Days         seasons changed to days (assume 182.5 days = 6 months)
+                /182.5/;
 
 * 3. DEFINE the variables
 VARIABLES
-   IrrAcre   total irrigated acres
-   BinHigh   binary variable for high dam
-   BinLow    binary variable for low dam
-   BinPump   binary variable for pump
-   TotalCost total capital and operating costs
-   GrossRev  gross revenue from crops
-   NetRev    net revenue;
+   IrrAcre(seasons)           total irrigated acres
+   IrrWat(seasons)            total water sent to irrigation
+   PumpOperatingCostVar       variable just for operating cost for pump
+   BinVar(choice)    binary variables (1 is yes and 0 is no)
+   TotalCost         total capital and operating costs
+   GrossRev          gross revenue from crops
+   NetRev            net revenue;
 
-BINARY VARIABLES BinHigh, BinLow, BinPump;
+BINARY VARIABLES BinVar;
 * Non-negativity constraints
-POSITIVE VARIABLES IrrAcre;
+POSITIVE VARIABLES IrrAcre, IrrWat;
 
 * 4. COMBINE variables and data in equations
 EQUATIONS
    COST            total cost ($)
    GROSS_REVENUE   gross revenue from crops ($)
-   NET_REVENUE     net revenue (gross - costs, in $)
-   HIGH_CAPACITY   high dam capacity constraint
-   LOW_CAPACITY    low dam capacity constraint
-   PUMP_CAPACITY(seasons)   pump capacity constraint;
+   NET_REVENUE     net revenue (gross - costs in $)
+   DEFINE_PUMP_COST     pump cost variable definition
+   IRRWAT_CAPACITY_HIGH   capacity constraint on water available with high dam
+   IRRWAT_CAPACITY_LOW    capacity constraint on water available with low dam
+   IRRWAT_CAPACITY_PUMP   capacity constraint on water available with pump
+   MUT_EXCLUSIVE   mutually exclusive constraint
+   ACRE_TOTAL(seasons)      acreage to be planted based on water demand;
 
-COST..                 TotalCost =E= (BinHigh*CostHigh)+(BinLow*CostLow)+(BinPump*PumpCapCost)
-                                     +SUM(seasons,PumpCap*Days*PumpOpCost*BinPump);
-GROSS_REVENUE..        IrrAcre*Revenue =E= GrossRev;
+COST.. TotalCost =E= SUM(choice, BinVar(choice) * CapitalCost(choice)) + PumpOperatingCostVar;
+GROSS_REVENUE(seasons)..        GrossRev =E= IrrAcre(seasons)*Revenue;
 NET_REVENUE..          GrossRev - TotalCost =E= NetRev;
-HIGH_CAPACITY..        IrrAcre =L= BinHigh*CapHigh;
-LOW_CAPACITY..         IrrAcre =L= BinLow*CapLow;
-PUMP_CAPACITY(seasons)..         =L= Qin(seasons)+(BinPump*days*2)
+DEFINE_PUMP_COST..      PumpOperatingCostVar =E= BinVar("PumpChoice")*SUM(seasons, IrrWat(seasons)*PumpOpCost);
+IRRWAT_CAPACITY_HIGH(seasons)..      IrrWat(seasons) =L= BinVar("HighDam")*CapHigh;
+IRRWAT_CAPACITY_LOW(seasons)..       IrrWat(seasons) =L= BinVar("LowDam")*CapLow;
+IRRWAT_CAPACITY_PUMP(seasons)..      IrrWat(seasons) =L= BinVar("PumpChoice")*PumpCap*Days;
+MUT_EXCLUSIVE..        SUM(choice, BinVar(choice)) =L= 1;
+ACRE_TOTAL(seasons).. IrrAcre(seasons) =E= IrrWat(seasons) / IrrDem(seasons);
 
 * 5. DEFINE the MODEL from the EQUATIONS
 MODEL Ch7P1 /ALL/;

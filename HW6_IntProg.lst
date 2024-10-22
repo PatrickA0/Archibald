@@ -1,0 +1,115 @@
+GAMS 47.6.0  c2de9d6d Sep 12, 2024          WEX-WEI x86 64bit/MS Windows - 10/21/24 22:35:49 Page 1
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+      CEE 5410 Fall 2024
+      Chapter 7 Problem #1
+       
+      A farmer plans to develop water for irrigation. He is considering two possible sources of
+      water: a gravity diversion from a possible reservoir with two alternative capacities and/or a
+      pump from a lower river diversion (refer to Figure 7.3). Between the reservoir and pump
+      site the river base flow increases by 2 acft/day due to groundwater drainage into the river.
+      Ignore losses from the reservoir. The river flow into the reservoir and the farmer's demand
+      during each of two six-month seasons of the year are given in Table 7.5. Revenue is estimated
+      at $300 per year per acre irrigated.
+       
+      Assume that there are only two possible sizes of reservoir: a high dam that has capacity of
+      700 acft or a low dam with capacity of 300 acft. The capital costs are $10,000/year and
+      $6,000/year for the high and low dams, respectively (no operating cost). The pump capacity
+      is fixed at 2.2 acft/day with a capital cost (if it is built) of $8,000/year and operating
+      cost of $20/acft.
+       
+      Patrick Archibald
+      A02268222@usu.edu
+      October 14, 2024
+  23   
+  24  * 1. DEFINE the SETS
+  25  SETS seasons two seasons of the year /season1, season2/
+  26       choice  choices of what infrastructure to built /HighDam, LowDam, PumpChoice/;
+  27   
+  28  * 2. DEFINE input data
+  29  PARAMETERS
+  30     Qin(seasons) inflow in each season (ac-ft)
+  31                  /season1 600, season2 200/
+  32     IrrDem(seasons) irrigation demand in each season (ac-ft per acre)
+  33                  /season1 1, season2 3/
+  34     CapitalCost(choice) capital cost for each option ($)
+  35                  /HighDam 10000, LowDam 6000, PumpChoice 8000/
+  36     CapHigh       high reservoir capacity (ac-ft)
+  37                  /700/
+  38     CapLow        low reservoir capacity (ac-ft)
+  39                  /300/
+  40     PumpCap      pump capacity (ac-ft per day)
+  41                  /2.2/
+  42     PumpOpCost   pump operating cost ($ per ac-ft)
+  43                  /20/
+  44     Revenue      revenue from crops ($ per acre per year)
+  45                  /300/
+  46     Days         seasons changed to days (assume 182.5 days = 6 months)
+  47                  /182.5/;
+  48   
+  49  * 3. DEFINE the variables
+  50  VARIABLES
+  51     IrrAcre(seasons)           total irrigated acres
+  52     IrrWat(seasons)            total water sent to irrigation
+  53     PumpOperatingCostVar       variable just for operating cost for pump
+  54     BinVar(choice)    binary variables (1 is yes and 0 is no)
+  55     TotalCost         total capital and operating costs
+  56     GrossRev          gross revenue from crops
+  57     NetRev            net revenue;
+  58   
+  59  BINARY VARIABLES BinVar;
+  60  * Non-negativity constraints
+  61  POSITIVE VARIABLES IrrAcre, IrrWat;
+  62   
+  63  * 4. COMBINE variables and data in equations
+  64  EQUATIONS
+  65     COST            total cost ($)
+  66     GROSS_REVENUE   gross revenue from crops ($)
+  67     NET_REVENUE     net revenue (gross - costs in $)
+  68     DEFINE_PUMP_COST     pump cost variable definition
+  69     IRRWAT_CAPACITY_HIGH   capacity constraint on water available with high dam
+  70     IRRWAT_CAPACITY_LOW    capacity constraint on water available with low dam
+  71     IRRWAT_CAPACITY_PUMP   capacity constraint on water available with pump
+  72     MUT_EXCLUSIVE   mutually exclusive constraint
+  73     ACRE_TOTAL(seasons)      acreage to be planted based on water demand;
+  74   
+  75  COST.. TotalCost =E= SUM(choice, BinVar(choice) * CapitalCost(choice)) + PumpOperatingCostVar;
+  76  GROSS_REVENUE(seasons)..        GrossRev =E= IrrAcre(seasons)*Revenue;
+  77  NET_REVENUE..          GrossRev - TotalCost =E= NetRev;
+  78  DEFINE_PUMP_COST..      PumpOperatingCostVar =E= BinVar("PumpChoice")*SUM(seasons, IrrWat(seasons)*PumpOpCost);
+  79  IRRWAT_CAPACITY_HIGH(seasons)..      IrrWat(seasons) =L= BinVar("HighDam")*CapHigh;
+  80  IRRWAT_CAPACITY_LOW(seasons)..       IrrWat(seasons) =L= BinVar("LowDam")*CapLow;
+  81  IRRWAT_CAPACITY_PUMP(seasons)..      IrrWat(seasons) =L= BinVar("PumpChoice")*PumpCap*Days;
+  82  MUT_EXCLUSIVE..        SUM(choice, BinVar(choice)) =L= 1;
+  83  ACRE_TOTAL(seasons).. IrrAcre(seasons) =E= IrrWat(seasons) / IrrDem(seasons);
+  84   
+  85  * 5. DEFINE the MODEL from the EQUATIONS
+  86  MODEL Ch7P1 /ALL/;
+  87   
+  88  * 6. Solve the Model as an LP (relaxed IP)
+  89  SOLVE Ch7P1 USING MIP MAXIMIZING NetRev;
+****                                         $56,256
+****  56  Endogenous operands for * not allowed in linear models
+**** 256  Error(s) in analyzing solve statement.
+**** The following MIP errors were detected in model Ch7P1:
+****  56 equation DEFINE_PUMP_COST.. VAR operands for *
+
+**** 2 ERROR(S)   0 WARNING(S)
+
+
+COMPILATION TIME     =        0.000 SECONDS      3 MB  47.6.0 c2de9d6d WEX-WEI
+
+
+USER: CEE 6410 Water Resources Systems Analysis      G240923|0002AO-GEN
+      Utah State University, Utah Water Research Laboratory     DCE3763
+      License for teaching and research at degree granting institutions
+
+
+**** FILE SUMMARY
+
+Input      C:\Users\Patrick\OneDrive\Documents\Fall 2024\CEE 5410 - Water Resource System Analysis\GAMS Archibald\Archibald\HW6_IntProg.gms
+Output     C:\Users\Patrick\OneDrive\Documents\Fall 2024\CEE 5410 - Water Resource System Analysis\GAMS Archibald\Archibald\HW6_IntProg.lst
+
+**** USER ERROR(S) ENCOUNTERED
